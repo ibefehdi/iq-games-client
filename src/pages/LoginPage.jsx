@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Sun, Moon, LogIn } from 'lucide-react';
 import { useTheme } from '../utils/ThemeContext';
 import Logo from '../assets/logo.png';
-const LoginPage = () => {
+const LoginPage = ({ setIsAuthenticated, setUsername: setAppUsername }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -18,7 +18,7 @@ const LoginPage = () => {
         setError('');
 
         try {
-            const response = await axios.post('http://localhost:7000/api/v1/users/signin', {
+            const response = await axios.post('http://localhost:7001/api/v1/users/signin', {
                 username,
                 password
             }, {
@@ -27,7 +27,11 @@ const LoginPage = () => {
 
             if (response.data.accessToken) {
                 sessionStorage.setItem('accessToken', response.data.accessToken);
-                navigate('/dashboard');
+                sessionStorage.setItem('username', username);
+                sessionStorage.setItem('userId', response.data.userId);
+                setIsAuthenticated(true);
+                setAppUsername(username);
+                navigate('/games');
             }
         } catch (err) {
             if (err.response) {
