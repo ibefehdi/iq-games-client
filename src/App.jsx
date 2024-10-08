@@ -7,43 +7,76 @@ import LoginPage from './pages/LoginPage';
 import GamesPage from './pages/Games';
 import UserProfile from './pages/UserProfile';
 import Navbar from './components/Navbar';
+import axios from 'axios';
+import Trivia from './pages/Trivia';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = sessionStorage.getItem('accessToken');
-    const storedUsername = sessionStorage.getItem('username');
-    if (token && storedUsername) {
-      setIsAuthenticated(true);
-      setUsername(storedUsername);
-    }
+    const checkAuthStatus = async () => {
+      const token = sessionStorage.getItem('accessToken');
+      if (token) {
+        try {
+          // Verify token with the server
+          const response = await axios.get('http://localhost:7001/api/v1/users/verify', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (response.data.valid) {
+            setIsAuthenticated(true);
+            setUsername(sessionStorage.getItem('username'));
+          }
+        } catch (error) {
+          console.error('Token verification failed:', error);
+          sessionStorage.removeItem('accessToken');
+          sessionStorage.removeItem('username');
+        }
+      }
+      setIsLoading(false);
+    };
+
+    checkAuthStatus();
   }, []);
 
   const ProtectedRoute = ({ children }) => {
+    if (isLoading) {
+      return <div>Loading...</div>;
+    }
     if (!isAuthenticated) {
       return <Navigate to="/login" />;
     }
-    return children;
+    return (
+      <>
+        <Navbar username={username} />
+        {children}
+      </>
+    );
   };
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <ThemeProvider>
       <Router>
-        {isAuthenticated && <Navbar username={username} />}
         <Routes>
-          <Route
-            path="/login"
-            element={
-              <LoginPage
-                setIsAuthenticated={setIsAuthenticated}
-                setUsername={setUsername}
-              />
-            }
-          />          <Route path="/games" element={
+          <Route path="/login" element={
+            <LoginPage
+              setIsAuthenticated={setIsAuthenticated}
+              setUsername={setUsername}
+            />
+          } />
+          <Route path="/games" element={
             <ProtectedRoute>
               <GamesPage />
+            </ProtectedRoute>
+          } />
+           <Route path="/games/trivia" element={
+            <ProtectedRoute>
+              <Trivia />
             </ProtectedRoute>
           } />
           <Route path="/profile" element={
@@ -55,7 +88,7 @@ function App() {
         </Routes>
       </Router>
     </ThemeProvider>
-  )
+  );
 }
 
-export default App
+export default App;
