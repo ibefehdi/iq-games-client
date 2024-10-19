@@ -12,7 +12,28 @@ const Games = () => {
             description: 'Test your knowledge with our exciting trivia game!',
             image: Trivia, // Placeholder image
             route: '/games/trivia'
-        }
+        },
+        {
+            id: 2,
+            title: 'Memory Challenge',
+            description: 'Test your knowledge with our exciting trivia game!',
+            image: Trivia, // Placeholder image
+            route: '/games/memory'
+        },
+        {
+            id: 3,
+            title: 'Pattern Challenge',
+            description: 'Test your knowledge with our exciting trivia game!',
+            image: Trivia, // Placeholder image
+            route: '/games/pattern'
+        },
+        {
+            id: 4,
+            title: 'Word Association Challenge',
+            description: 'Test your knowledge with our exciting trivia game!',
+            image: Trivia, // Placeholder image
+            route: '/games/wordassociation'
+        },
     ];
 
     const handlePlayNow = (route) => {

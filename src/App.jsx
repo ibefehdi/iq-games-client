@@ -9,6 +9,9 @@ import UserProfile from './pages/UserProfile';
 import Navbar from './components/Navbar';
 import axios from 'axios';
 import Trivia from './pages/Trivia';
+import MemoryGame from './pages/MemoryGame';
+import PatternRecognitionGame from './pages/PatternRecognitionGame';
+import WordAssociationGame from './pages/WordAssocationGame';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -74,9 +77,24 @@ function App() {
               <GamesPage />
             </ProtectedRoute>
           } />
-           <Route path="/games/trivia" element={
+          <Route path="/games/trivia" element={
             <ProtectedRoute>
               <Trivia />
+            </ProtectedRoute>
+          } />
+          <Route path="/games/memory" element={
+            <ProtectedRoute>
+              <MemoryGame />
+            </ProtectedRoute>
+          } />
+          <Route path="/games/pattern" element={
+            <ProtectedRoute>
+              <PatternRecognitionGame />
+            </ProtectedRoute>
+          } />
+          <Route path="/games/wordassociation" element={
+            <ProtectedRoute>
+              <WordAssociationGame />
             </ProtectedRoute>
           } />
           <Route path="/profile" element={
