@@ -15,31 +15,34 @@ const MemoryGame = () => {
     const [iq, setIQ] = useState(null);
     const [userId, setUserId] = useState(null);
     const [initialReveal, setInitialReveal] = useState(true);
+    const [totalPairs, setTotalPairs] = useState(0);
     const { darkMode } = useTheme();
-
-    const symbols = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮'];
 
     useEffect(() => {
         setUserId('60f5e8b7d5ab7a1234567890'); // Replace with actual user authentication
         initializeGame();
     }, []);
 
-    const initializeGame = () => {
-        const shuffledCards = [...symbols, ...symbols]
-            .sort(() => Math.random() - 0.5)
-            .map((symbol, index) => ({ id: index, symbol, flipped: true, matched: false }));
-        setCards(shuffledCards);
-        setInitialReveal(true);
-        setFlippedCards([]);
-        setMatchedPairs([]);
-        setMoves(0);
-        setGameOver(false);
+    const initializeGame = async () => {
+        try {
+            const response = await fetch('http://localhost:7001/api/v1/memory-game/initialize');
+            const data = await response.json();
+            setCards(data.cards);
+            setTotalPairs(data.totalPairs);
+            setInitialReveal(true);
+            setFlippedCards([]);
+            setMatchedPairs([]);
+            setMoves(0);
+            setGameOver(false);
 
-        setTimeout(() => {
-            setInitialReveal(false);
-            setCards(cards => cards.map(card => ({ ...card, flipped: false })));
-            setStartTime(Date.now());
-        }, 2000);
+            setTimeout(() => {
+                setInitialReveal(false);
+                setCards(cards => cards.map(card => ({ ...card, flipped: false })));
+                setStartTime(Date.now());
+            }, 2000);
+        } catch (error) {
+            console.error('Error initializing game:', error);
+        }
     };
 
     const handleCardClick = (clickedCard) => {
@@ -71,24 +74,33 @@ const MemoryGame = () => {
     };
 
     useEffect(() => {
-        if (matchedPairs.length === symbols.length) {
+        if (matchedPairs.length === totalPairs) {
             const endTime = Date.now();
             const timeSpent = (endTime - startTime) / 1000;
             calculateIQ(timeSpent);
         }
-    }, [matchedPairs]);
+    }, [matchedPairs, totalPairs, startTime]);
 
-    const calculateIQ = (timeSpent) => {
-        const baseIQ = 100;
-        const timeBonus = Math.max(0, 30 - timeSpent);
-        const movePenalty = Math.max(0, moves - symbols.length * 2) * 0.5;
-        const calculatedIQ = Math.round(baseIQ + timeBonus - movePenalty);
-        setIQ(calculatedIQ);
-        setGameOver(true);
-    };
+    const calculateIQ = async (timeSpent) => {
+        try {
+            const response = await fetch('http://localhost:7001/api/v1/memory-game/calculate-iq', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    timeSpent,
+                    moves,
+                    userId
+                })
+            });
 
-    const particlesInit = async (main) => {
-        await loadFull(main);
+            const data = await response.json();
+            setIQ(data.iq);
+            setGameOver(true);
+        } catch (error) {
+            console.error('Error calculating IQ:', error);
+        }
     };
 
     const particlesOptions = {
@@ -100,6 +112,10 @@ const MemoryGame = () => {
             size: { value: 3, random: true },
             move: { enable: true, speed: 1, direction: "none", random: true, straight: false, out_mode: "out" }
         }
+    };
+
+    const particlesInit = async (main) => {
+        await loadFull(main);
     };
 
     return (
@@ -163,7 +179,7 @@ const MemoryGame = () => {
                     <>
                         <div className="mb-6 flex justify-between items-center bg-white dark:bg-gray-800 rounded-lg p-4 shadow-md backdrop-filter backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90">
                             <span className="text-xl font-bold">Moves: {moves}</span>
-                            <span className="text-xl font-bold">Pairs: {matchedPairs.length}/{symbols.length}</span>
+                            <span className="text-xl font-bold">Pairs: {matchedPairs.length}/{totalPairs}</span>
                         </div>
                         {initialReveal && (
                             <motion.div
@@ -191,8 +207,8 @@ const MemoryGame = () => {
                                         exit={{ rotateY: 0 }}
                                         transition={{ duration: 0.6 }}
                                         className={`aspect-square flex items-center justify-center text-5xl cursor-pointer
-                                                    ${card.matched ? 'bg-green-200 dark:bg-green-700' : 'bg-blue-200 dark:bg-blue-700'}
-                                                    rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105`}
+                                            ${card.matched ? 'bg-green-200 dark:bg-green-700' : 'bg-blue-200 dark:bg-blue-700'}
+                                            rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105`}
                                         onClick={() => handleCardClick(card)}
                                         style={{
                                             perspective: '1000px',

@@ -19,12 +19,14 @@ const PatternRecognitionGame = () => {
         setStartTime(Date.now());
     }, []);
 
-    const generatePatterns = () => {
-        const newPatterns = [];
-        for (let i = 0; i < 10; i++) {
-            newPatterns.push(generateSinglePattern());
+    const generatePatterns = async () => {
+        try {
+            const response = await fetch('http://localhost:7001/api/v1/pattern-game/patterns');
+            const newPatterns = await response.json();
+            setPatterns(newPatterns);
+        } catch (error) {
+            console.error('Error fetching patterns:', error);
         }
-        setPatterns(newPatterns);
     };
 
     const generateSinglePattern = () => {
@@ -72,14 +74,26 @@ const PatternRecognitionGame = () => {
         }
     };
 
-    const calculateIQ = (timeSpent) => {
-        // This is a placeholder calculation. Replace with your actual IQ calculation logic.
-        const baseIQ = 100;
-        const scoreFactor = (score / patterns.length) * 30;
-        const timeFactor = Math.max(0, 20 - (timeSpent / patterns.length));
-        const calculatedIQ = Math.round(baseIQ + scoreFactor + timeFactor);
-        setIQ(calculatedIQ);
-        setShowScore(true);
+    const calculateIQ = async (timeSpent) => {
+        try {
+            const response = await fetch('http://localhost:7001/api/v1/pattern-game/calculate-iq', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    score,
+                    timeSpent,
+                    userId: userId
+                })
+            });
+
+            const data = await response.json();
+            setIQ(data.iq);
+            setShowScore(true);
+        } catch (error) {
+            console.error('Error calculating IQ:', error);
+        }
     };
 
     const renderShape = (shape) => {

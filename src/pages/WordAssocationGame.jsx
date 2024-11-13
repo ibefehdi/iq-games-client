@@ -11,82 +11,99 @@ const WordAssociationGame = () => {
     const [timeLeft, setTimeLeft] = useState(60);
     const [gameOver, setGameOver] = useState(false);
     const [iq, setIQ] = useState(null);
-    const [userId, setUserId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const { darkMode } = useTheme();
     const inputRef = useRef(null);
-
-    const seedWords = [
-        'apple', 'book', 'cat', 'dog', 'elephant', 'flower', 'guitar', 'house', 'ice', 'jacket',
-        'kite', 'lemon', 'moon', 'nest', 'ocean', 'piano', 'queen', 'rabbit', 'sun', 'tree',
-        'umbrella', 'violin', 'water', 'xylophone', 'yellow', 'zebra'
-    ];
+    const startTime = useRef(Date.now());
 
     useEffect(() => {
-        setUserId('60f5e8b7d5ab7a1234567890'); // Replace with actual user authentication
         getNewWord();
         const timer = setInterval(() => {
-            setTimeLeft((prevTime) => prevTime - 1);
+            setTimeLeft((prevTime) => {
+                if (prevTime <= 1) {
+                    clearInterval(timer);
+                    endGame();
+                    return 0;
+                }
+                return prevTime - 1;
+            });
         }, 1000);
 
         return () => clearInterval(timer);
     }, []);
 
-    useEffect(() => {
-        if (timeLeft === 0) {
-            endGame();
-        }
-    }, [timeLeft]);
-
     const getNewWord = async () => {
-        setIsLoading(true);
-        const newWord = seedWords[Math.floor(Math.random() * seedWords.length)];
-        setCurrentWord(newWord);
-        await fetchRelatedWords(newWord);
-        setIsLoading(false);
-    };
-
-    const fetchRelatedWords = async (word) => {
         try {
-            const response = await fetch(`https://api.datamuse.com/words?rel_trg=${word}&max=10`);
+            setIsLoading(true);
+            const response = await fetch('http://localhost:7001/api/v1/word-game/challenge');
             const data = await response.json();
-            setRelatedWords(data.map(item => item.word));
+            setCurrentWord(data.word);
+            setRelatedWords(data.relatedWords);
+            setIsLoading(false);
         } catch (error) {
-            console.error('Error fetching related words:', error);
-            setRelatedWords([]);
+            console.error('Error getting new word:', error);
+            setIsLoading(false);
         }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (isValidAssociation(userInput)) {
-            setScore(score + 1);
+        if (!userInput.trim() || isLoading) return;
+
+        try {
+            setIsLoading(true);
+            const response = await fetch('http://localhost:7001/api/v1/word-game/verify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    submittedWord: userInput,
+                    currentWord: currentWord
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.correct) {
+                setScore(prev => prev + 1);
+            }
+
+            setCurrentWord(data.nextWord);
+            setRelatedWords(data.nextRelatedWords);
+            setUserInput('');
+            setIsLoading(false);
+        } catch (error) {
+            console.error('Error submitting word:', error);
+            setIsLoading(false);
         }
-        getNewWord();
-        setUserInput('');
+    };
+
+    const endGame = async () => {
+        const timeSpent = Math.round((Date.now() - startTime.current) / 1000);
+        try {
+            const response = await fetch('http://localhost:7001/api/v1/word-game/calculate-iq', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    score,
+                    timeSpent,
+                    userId: '60f5e8b7d5ab7a1234567890' // Replace with actual user ID
+                })
+            });
+
+            const data = await response.json();
+            setIQ(data.iq);
+            setGameOver(true);
+        } catch (error) {
+            console.error('Error calculating IQ:', error);
+        }
     };
 
     const handleInputChange = (e) => {
         setUserInput(e.target.value);
-    };
-
-    const isValidAssociation = (word) => {
-        return relatedWords.includes(word.toLowerCase());
-    };
-
-    const endGame = () => {
-        setGameOver(true);
-        calculateIQ();
-    };
-
-    const calculateIQ = () => {
-        // This is a placeholder calculation. In a real app, you'd use a more sophisticated algorithm
-        // or send the data to a backend for processing.
-        const baseIQ = 100;
-        const scoreMultiplier = 2;
-
-        const calculatedIQ = Math.round(baseIQ + (score * scoreMultiplier));
-        setIQ(calculatedIQ);
     };
 
     return (
@@ -169,7 +186,7 @@ const WordAssociationGame = () => {
                                 ref={inputRef}
                                 value={userInput}
                                 onChange={handleInputChange}
-                                className="w-full p-2 text-center text-lg border-2 border-green-300 dark:border-green-600 rounded-lg mr-4 focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400"
+                                className="w-full p-2 text-center text-lg text-black border-2 border-green-300 dark:border-green-600 rounded-lg mr-4 focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400"
                                 placeholder="Type your association..."
                                 required
                                 disabled={isLoading}
