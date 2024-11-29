@@ -23,7 +23,7 @@ const Navbar = ({ username }) => {
         <nav className="bg-white dark:bg-gray-800 shadow-md transition-colors duration-300">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
-                    <div className="flex items-center">
+                    <div className="flex items-center" onClick={() => navigate("/")}>
                         <div className="flex-shrink-0">
                             <img className="h-8 w-8" src={Logo} alt="Logo" />
                         </div>

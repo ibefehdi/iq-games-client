@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../utils/ThemeContext';
-import { Zap, Award, Loader } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Zap, Award } from 'lucide-react';
+import { motion } from 'framer-motion';
 import Particles from 'react-tsparticles';
 import { loadFull } from 'tsparticles';
 
@@ -15,11 +15,13 @@ const MemoryGame = () => {
     const [iq, setIQ] = useState(null);
     const [userId, setUserId] = useState(null);
     const [initialReveal, setInitialReveal] = useState(true);
+    const [initialRevealTimeLeft, setInitialRevealTimeLeft] = useState(0);
     const [totalPairs, setTotalPairs] = useState(0);
     const { darkMode } = useTheme();
 
     useEffect(() => {
-        setUserId('60f5e8b7d5ab7a1234567890'); // Replace with actual user authentication
+        const userIdFromSession = sessionStorage.getItem('userId');
+        setUserId(userIdFromSession); // Replace with actual user authentication
         initializeGame();
     }, []);
 
@@ -34,12 +36,33 @@ const MemoryGame = () => {
             setMatchedPairs([]);
             setMoves(0);
             setGameOver(false);
+            setStartTime(null);
+
+            const revealDuration = 4000; // 4 seconds
+            const revealStartTime = Date.now();
+
+            setInitialRevealTimeLeft(Math.ceil(revealDuration / 1000));
 
             setTimeout(() => {
                 setInitialReveal(false);
-                setCards(cards => cards.map(card => ({ ...card, flipped: false })));
+                setCards((prevCards) => prevCards.map(card => ({ ...card, flipped: false })));
                 setStartTime(Date.now());
-            }, 2000);
+            }, revealDuration);
+
+            // Update the countdown timer every second
+            const countdownInterval = setInterval(() => {
+                const timeLeft = Math.ceil((revealDuration - (Date.now() - revealStartTime)) / 1000);
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    setInitialRevealTimeLeft(0);
+                } else {
+                    setInitialRevealTimeLeft(timeLeft);
+                }
+            }, 1000);
+
+            // Clear the interval when component unmounts
+            return () => clearInterval(countdownInterval);
+
         } catch (error) {
             console.error('Error initializing game:', error);
         }
@@ -48,33 +71,40 @@ const MemoryGame = () => {
     const handleCardClick = (clickedCard) => {
         if (initialReveal || flippedCards.length === 2 || clickedCard.flipped || clickedCard.matched) return;
 
-        const newFlippedCards = [...flippedCards, clickedCard];
+        setCards((prevCards) =>
+            prevCards.map(card =>
+                card.id === clickedCard.id ? { ...card, flipped: true } : card
+            )
+        );
+
+        const newFlippedCards = [...flippedCards, { ...clickedCard, flipped: true }];
         setFlippedCards(newFlippedCards);
-        setCards(cards.map(card =>
-            card.id === clickedCard.id ? { ...card, flipped: true } : card
-        ));
 
         if (newFlippedCards.length === 2) {
-            setMoves(moves + 1);
+            setMoves((prevMoves) => prevMoves + 1);
             if (newFlippedCards[0].symbol === newFlippedCards[1].symbol) {
-                setMatchedPairs([...matchedPairs, newFlippedCards[0].symbol]);
-                setCards(cards.map(card =>
-                    card.symbol === newFlippedCards[0].symbol ? { ...card, matched: true, flipped: true } : card
-                ));
+                setMatchedPairs((prevMatched) => [...prevMatched, newFlippedCards[0].symbol]);
+                setCards((prevCards) =>
+                    prevCards.map(card =>
+                        card.symbol === newFlippedCards[0].symbol ? { ...card, matched: true, flipped: true } : card
+                    )
+                );
                 setFlippedCards([]);
             } else {
                 setTimeout(() => {
+                    setCards((prevCards) =>
+                        prevCards.map(card =>
+                            card.matched ? card : { ...card, flipped: false }
+                        )
+                    );
                     setFlippedCards([]);
-                    setCards(cards.map(card =>
-                        card.matched ? card : { ...card, flipped: false }
-                    ));
                 }, 1000);
             }
         }
     };
 
     useEffect(() => {
-        if (matchedPairs.length === totalPairs) {
+        if (matchedPairs.length === totalPairs && startTime) {
             const endTime = Date.now();
             const timeSpent = (endTime - startTime) / 1000;
             calculateIQ(timeSpent);
@@ -87,17 +117,23 @@ const MemoryGame = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    // Include authentication headers if necessary
                 },
                 body: JSON.stringify({
                     timeSpent,
                     moves,
-                    userId
-                })
+                    userId,
+                    totalPairs
+                }),
             });
 
             const data = await response.json();
-            setIQ(data.iq);
-            setGameOver(true);
+            if (response.ok) {
+                setIQ(data.iq);
+                setGameOver(true);
+            } else {
+                console.error('Error calculating IQ:', data.error);
+            }
         } catch (error) {
             console.error('Error calculating IQ:', error);
         }
@@ -189,54 +225,55 @@ const MemoryGame = () => {
                                 className="text-center mb-6 bg-yellow-100 dark:bg-yellow-900 p-4 rounded-lg shadow-md"
                             >
                                 <p className="text-2xl font-bold text-yellow-800 dark:text-yellow-200">Memorize the cards!</p>
-                                <p className="text-lg text-yellow-700 dark:text-yellow-300">Cards will be hidden in {Math.ceil((2000 - (Date.now() - startTime)) / 1000)} seconds</p>
+                                <p className="text-lg text-yellow-700 dark:text-yellow-300">
+                                    Cards will be hidden in {initialRevealTimeLeft} seconds
+                                </p>
                             </motion.div>
                         )}
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ duration: 0.5 }}
-                            className="grid grid-cols-4 gap-4 md:gap-6"
+                            // Increased grid columns to make cards smaller
+                            className="grid grid-cols-5 gap-2 md:gap-4"
                         >
-                            <AnimatePresence>
-                                {cards.map(card => (
+                            {cards.map(card => (
+                                <motion.div
+                                    key={card.id}
+                                    className={`aspect-square relative cursor-pointer
+                    ${card.matched ? 'bg-green-200 dark:bg-green-700' : 'bg-blue-200 dark:bg-blue-700'}
+                    rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105`}
+                                    onClick={() => handleCardClick(card)}
+                                    style={{
+                                        perspective: '1000px',
+                                    }}
+                                >
                                     <motion.div
-                                        key={card.id}
-                                        initial={{ rotateY: 0 }}
-                                        animate={{ rotateY: card.flipped || card.matched ? 180 : 0 }}
-                                        exit={{ rotateY: 0 }}
+                                        className="absolute inset-0 w-full h-full flex items-center justify-center text-3xl sm:text-4xl md:text-5xl rounded-lg"
+                                        animate={{ rotateY: card.flipped || card.matched ? 0 : 180 }}
                                         transition={{ duration: 0.6 }}
-                                        className={`aspect-square flex items-center justify-center text-5xl cursor-pointer
-                                            ${card.matched ? 'bg-green-200 dark:bg-green-700' : 'bg-blue-200 dark:bg-blue-700'}
-                                            rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105`}
-                                        onClick={() => handleCardClick(card)}
                                         style={{
-                                            perspective: '1000px',
-                                            transformStyle: 'preserve-3d'
+                                            backfaceVisibility: 'hidden',
+                                            position: 'absolute',
+                                            transformStyle: 'preserve-3d',
                                         }}
                                     >
-                                        <motion.div
-                                            className="w-full h-full flex items-center justify-center backface-hidden"
-                                            style={{
-                                                position: 'absolute',
-                                                backfaceVisibility: 'hidden',
-                                                transform: 'rotateY(180deg)'
-                                            }}
-                                        >
-                                            {card.symbol}
-                                        </motion.div>
-                                        <motion.div
-                                            className="w-full h-full flex items-center justify-center backface-hidden bg-gradient-to-br from-blue-400 to-blue-600 dark:from-blue-600 dark:to-blue-800 text-white font-bold text-3xl"
-                                            style={{
-                                                position: 'absolute',
-                                                backfaceVisibility: 'hidden'
-                                            }}
-                                        >
-                                            ?
-                                        </motion.div>
+                                        {card.symbol}
                                     </motion.div>
-                                ))}
-                            </AnimatePresence>
+                                    <motion.div
+                                        className="absolute inset-0 w-full h-full flex items-center justify-center text-2xl sm:text-3xl md:text-4xl bg-gradient-to-br from-blue-400 to-blue-600 dark:from-blue-600 dark:to-blue-800 text-white font-bold rounded-lg"
+                                        animate={{ rotateY: card.flipped || card.matched ? -180 : 0 }}
+                                        transition={{ duration: 0.6 }}
+                                        style={{
+                                            backfaceVisibility: 'hidden',
+                                            position: 'absolute',
+                                            transformStyle: 'preserve-3d',
+                                        }}
+                                    >
+                                        ?
+                                    </motion.div>
+                                </motion.div>
+                            ))}
                         </motion.div>
                     </>
                 )}

@@ -15,7 +15,7 @@ const WordAssociationGame = () => {
     const { darkMode } = useTheme();
     const inputRef = useRef(null);
     const startTime = useRef(Date.now());
-
+    const [userId, setUserId] = useState();
     useEffect(() => {
         getNewWord();
         const timer = setInterval(() => {
@@ -79,6 +79,10 @@ const WordAssociationGame = () => {
         }
     };
 
+    useEffect(() => {
+        const userId = sessionStorage.getItem('userId');
+        setUserId(userId);
+    }, []);
     const endGame = async () => {
         const timeSpent = Math.round((Date.now() - startTime.current) / 1000);
         try {
@@ -90,7 +94,7 @@ const WordAssociationGame = () => {
                 body: JSON.stringify({
                     score,
                     timeSpent,
-                    userId: '60f5e8b7d5ab7a1234567890' // Replace with actual user ID
+                    userId: userId
                 })
             });
 

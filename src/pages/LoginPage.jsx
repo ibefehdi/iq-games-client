@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+// LoginPage.jsx
+
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Sun, Moon, LogIn, UserPlus } from 'lucide-react';
 import { useTheme } from '../utils/ThemeContext';
 import Logo from '../assets/logo.png';
+import * as jwtDecode from 'jwt-decode';  // Updated import syntax for jwt-decode v4
 
 const LoginPage = ({ setIsAuthenticated, setUsername: setAppUsername }) => {
     const [isLoginMode, setIsLoginMode] = useState(true);
@@ -32,12 +35,40 @@ const LoginPage = ({ setIsAuthenticated, setUsername: setAppUsername }) => {
                 });
 
                 if (response.data.accessToken) {
-                    sessionStorage.setItem('accessToken', response.data.accessToken);
-                    sessionStorage.setItem('username', username);
-                    sessionStorage.setItem('userId', response.data.userId);
-                    setIsAuthenticated(true);
-                    setAppUsername(username);
-                    navigate('/games');
+                    console.log("Access Token: ", response.data.accessToken);
+
+                    try {
+                        // Explicitly type the decoded token
+                        const decodedToken = jwtDecode.jwtDecode(response.data.accessToken);
+                        console.log("Full decoded token:", decodedToken);
+
+                        if (!decodedToken.userId || !decodedToken.username) {
+                            throw new Error('Token missing required fields');
+                        }
+
+                        console.log("User ID:", decodedToken.userId);
+                        console.log("Username:", decodedToken.username);
+
+                        // Store in session storage
+                        sessionStorage.setItem('accessToken', response.data.accessToken);
+                        sessionStorage.setItem('userId', decodedToken.userId);
+                        sessionStorage.setItem('username', decodedToken.username);
+
+                        // Update authentication state
+                        setIsAuthenticated(true);
+                        setAppUsername(decodedToken.username);
+
+                        console.log("About to navigate to /games");
+                        navigate('/games');
+                        console.log("Navigation called");
+                    } catch (decodeError) {
+                        console.error("Token decode error:", decodeError);
+                        setError('Error processing login response. Please try again.');
+                        return;
+                    }
+                } else {
+                    console.error("No access token in response");
+                    setError('Invalid login response. Please try again.');
                 }
             } else {
                 const response = await axios.post('http://localhost:7001/api/v1/users/signup', {
@@ -89,7 +120,9 @@ const LoginPage = ({ setIsAuthenticated, setUsername: setAppUsername }) => {
                 <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg px-8 pt-6 pb-8 mb-4 transition-colors duration-300">
                     <div className="flex justify-between items-center mb-6">
                         <div className="w-32 h-32 bg-gray-300 dark:bg-gray-700 rounded flex items-center justify-center">
-                            <span className="text-gray-600 dark:text-gray-400"><img src={Logo} alt="Logo" /></span>
+                            <span className="text-gray-600 dark:text-gray-400">
+                                <img src={Logo} alt="Logo" />
+                            </span>
                         </div>
                         <button
                             onClick={toggleDarkMode}

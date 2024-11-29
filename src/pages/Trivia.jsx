@@ -15,7 +15,9 @@ const Trivia = () => {
     const { darkMode } = useTheme();
 
     useEffect(() => {
-        setUserId('60f5e8b7d5ab7a1234567890'); // Replace with actual user authentication
+        const userId = sessionStorage.getItem('userId');
+
+        setUserId(userId); // Replace with actual user authentication
 
         axios.get('http://localhost:7001/api/v1/questions')
             .then(response => {
