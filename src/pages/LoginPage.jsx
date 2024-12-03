@@ -1,12 +1,10 @@
-// LoginPage.jsx
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Sun, Moon, LogIn, UserPlus } from 'lucide-react';
+import { Sun, Moon, LogIn, UserPlus, Upload } from 'lucide-react';
 import { useTheme } from '../utils/ThemeContext';
 import Logo from '../assets/logo.png';
-import * as jwtDecode from 'jwt-decode';  // Updated import syntax for jwt-decode v4
+import * as jwtDecode from 'jwt-decode';
 
 const LoginPage = ({ setIsAuthenticated, setUsername: setAppUsername }) => {
     const [isLoginMode, setIsLoginMode] = useState(true);
@@ -15,10 +13,28 @@ const LoginPage = ({ setIsAuthenticated, setUsername: setAppUsername }) => {
     const [fName, setFName] = useState('');
     const [lName, setLName] = useState('');
     const [email, setEmail] = useState('');
+    const [profileImage, setProfileImage] = useState(null);
+    const [previewUrl, setPreviewUrl] = useState(null);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
     const { darkMode, toggleDarkMode } = useTheme();
+
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 20 * 1024 * 1024) { // 5MB limit
+                setError('Image size should be less than 20MB');
+                return;
+            }
+            if (!['image/jpeg', 'image/jpg', 'image/png'].includes(file.type)) {
+                setError('Only JPG, JPEG, and PNG files are allowed');
+                return;
+            }
+            setProfileImage(file);
+            setPreviewUrl(URL.createObjectURL(file));
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -35,48 +51,40 @@ const LoginPage = ({ setIsAuthenticated, setUsername: setAppUsername }) => {
                 });
 
                 if (response.data.accessToken) {
-                    console.log("Access Token: ", response.data.accessToken);
-
                     try {
-                        // Explicitly type the decoded token
                         const decodedToken = jwtDecode.jwtDecode(response.data.accessToken);
-                        console.log("Full decoded token:", decodedToken);
-
                         if (!decodedToken.userId || !decodedToken.username) {
                             throw new Error('Token missing required fields');
                         }
 
-                        console.log("User ID:", decodedToken.userId);
-                        console.log("Username:", decodedToken.username);
-
-                        // Store in session storage
                         sessionStorage.setItem('accessToken', response.data.accessToken);
                         sessionStorage.setItem('userId', decodedToken.userId);
                         sessionStorage.setItem('username', decodedToken.username);
-
-                        // Update authentication state
+                        sessionStorage.setItem('profileImage', response.data.profileImage);
                         setIsAuthenticated(true);
                         setAppUsername(decodedToken.username);
-
-                        console.log("About to navigate to /games");
                         navigate('/games');
-                        console.log("Navigation called");
                     } catch (decodeError) {
                         console.error("Token decode error:", decodeError);
                         setError('Error processing login response. Please try again.');
                         return;
                     }
-                } else {
-                    console.error("No access token in response");
-                    setError('Invalid login response. Please try again.');
                 }
             } else {
-                const response = await axios.post('http://localhost:7001/api/v1/users/signup', {
-                    username,
-                    password,
-                    fName,
-                    lName,
-                    email
+                const formData = new FormData();
+                formData.append('username', username);
+                formData.append('password', password);
+                formData.append('fName', fName);
+                formData.append('lName', lName);
+                formData.append('email', email);
+                if (profileImage) {
+                    formData.append('profileImage', profileImage);
+                }
+
+                const response = await axios.post('http://localhost:7001/api/v1/users/signup', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
                 });
 
                 if (response.status === 201) {
@@ -87,6 +95,8 @@ const LoginPage = ({ setIsAuthenticated, setUsername: setAppUsername }) => {
                     setFName('');
                     setLName('');
                     setEmail('');
+                    setProfileImage(null);
+                    setPreviewUrl(null);
                 }
             }
         } catch (err) {
@@ -112,10 +122,12 @@ const LoginPage = ({ setIsAuthenticated, setUsername: setAppUsername }) => {
     const toggleMode = () => {
         setIsLoginMode(!isLoginMode);
         setError('');
+        setProfileImage(null);
+        setPreviewUrl(null);
     };
 
     return (
-        <div className={`flex justify-center items-center min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300`}>
+        <div className="flex justify-center items-center min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
             <div className="w-full max-w-md">
                 <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg px-8 pt-6 pb-8 mb-4 transition-colors duration-300">
                     <div className="flex justify-between items-center mb-6">
@@ -193,7 +205,7 @@ const LoginPage = ({ setIsAuthenticated, setUsername: setAppUsername }) => {
                                         required
                                     />
                                 </div>
-                                <div className="mb-6">
+                                <div className="mb-4">
                                     <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" htmlFor="email">
                                         Email
                                     </label>
@@ -206,6 +218,35 @@ const LoginPage = ({ setIsAuthenticated, setUsername: setAppUsername }) => {
                                         onChange={(e) => setEmail(e.target.value)}
                                         required
                                     />
+                                </div>
+                                <div className="mb-6">
+                                    <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">
+                                        Profile Image
+                                    </label>
+                                    <div className="flex items-center space-x-4">
+                                        <label className="cursor-pointer bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors duration-300 flex items-center">
+                                            <Upload className="mr-2" size={20} />
+                                            Choose Image
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                accept="image/jpeg,image/jpg,image/png"
+                                                onChange={handleImageChange}
+                                            />
+                                        </label>
+                                        {previewUrl && (
+                                            <div className="w-16 h-16 relative">
+                                                <img
+                                                    src={previewUrl}
+                                                    alt="Preview"
+                                                    className="w-full h-full object-cover rounded"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                        Max size: 20MB. Allowed formats: JPG, JPEG, PNG
+                                    </p>
                                 </div>
                             </>
                         )}

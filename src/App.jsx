@@ -17,7 +17,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-
+  const [profileImage, setProfileImage] = useState('');
   useEffect(() => {
     const checkAuthStatus = async () => {
       const token = sessionStorage.getItem('accessToken');
@@ -30,6 +30,7 @@ function App() {
           if (response.data.valid) {
             setIsAuthenticated(true);
             setUsername(sessionStorage.getItem('username'));
+            setProfileImage(sessionStorage.getItem('profileImage'));
           }
         } catch (error) {
           console.error('Token verification failed:', error);
@@ -52,7 +53,7 @@ function App() {
     }
     return (
       <>
-        <Navbar username={username} />
+        <Navbar username={username} profileImage = {profileImage} />
         {children}
       </>
     );
@@ -70,6 +71,8 @@ function App() {
             <LoginPage
               setIsAuthenticated={setIsAuthenticated}
               setUsername={setUsername}
+              setProfileImage={setProfileImage}
+              profileImage={profileImage}
             />
           } />
           <Route path="/games" element={
