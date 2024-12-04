@@ -23,7 +23,7 @@ const Games = () => {
             id: 3,
             title: 'Pattern Challenge',
             description: 'Test your knowledge with our exciting trivia game!',
-            imagePath: 'pattern-recognition.jpeg', // Placeholder image
+            imagePath: 'pattern-recognition-1.jpeg', // Placeholder image
             route: '/games/pattern'
         },
         {
