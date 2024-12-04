@@ -1,6 +1,5 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import Trivia from '../assets/trivia.svg';
 const Games = () => {
     const navigate = useNavigate();
 
@@ -10,28 +9,28 @@ const Games = () => {
             id: 1,
             title: 'Trivia Challenge',
             description: 'Test your knowledge with our exciting trivia game!',
-            image: Trivia, // Placeholder image
+            imagePath: 'trivia.svg', // Placeholder image
             route: '/games/trivia'
         },
         {
             id: 2,
             title: 'Memory Challenge',
             description: 'Test your knowledge with our exciting trivia game!',
-            image: Trivia, // Placeholder image
+            imagePath: 'memory-match.jpeg', // Placeholder image
             route: '/games/memory'
         },
         {
             id: 3,
             title: 'Pattern Challenge',
             description: 'Test your knowledge with our exciting trivia game!',
-            image: Trivia, // Placeholder image
+            imagePath: 'pattern-recognition.jpeg', // Placeholder image
             route: '/games/pattern'
         },
         {
             id: 4,
             title: 'Word Association Challenge',
             description: 'Test your knowledge with our exciting trivia game!',
-            image: Trivia, // Placeholder image
+            imagePath: 'word-association.jpeg', // Placeholder image
             route: '/games/wordassociation'
         },
     ];
@@ -47,7 +46,7 @@ const Games = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {games.map((game) => (
                         <div key={game.id} className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg transition-colors duration-300">
-                            <img src={game.image} alt={game.title} className="w-full h-48 object-cover" />
+                            <img src={"https://usc1.contabostorage.com/b76bfe0a0d0b46dfa7533e11a296e100:iq-games/games-images/" + game.imagePath} alt={game.title} className="w-full h-48 object-cover" />
                             <div className="p-5">
                                 <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
                                     {game.title}
