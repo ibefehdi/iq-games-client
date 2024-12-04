@@ -9,28 +9,28 @@ const Games = () => {
             id: 1,
             title: 'Trivia Challenge',
             description: 'Test your knowledge with our exciting trivia game!',
-            imagePath: 'trivia.svg', // Placeholder image
+            imagePath: 'trivia-quiz-2.jpeg', // Placeholder image
             route: '/games/trivia'
         },
         {
             id: 2,
             title: 'Memory Challenge',
             description: 'Test your knowledge with our exciting trivia game!',
-            imagePath: 'memory-match.jpeg', // Placeholder image
+            imagePath: 'memory-match-2.jpeg', // Placeholder image
             route: '/games/memory'
         },
         {
             id: 3,
             title: 'Pattern Challenge',
             description: 'Test your knowledge with our exciting trivia game!',
-            imagePath: 'pattern-recognition-1.jpeg', // Placeholder image
+            imagePath: 'pattern-recognition-2.jpeg', // Placeholder image
             route: '/games/pattern'
         },
         {
             id: 4,
             title: 'Word Association Challenge',
             description: 'Test your knowledge with our exciting trivia game!',
-            imagePath: 'word-association.jpeg', // Placeholder image
+            imagePath: 'word-association-2.jpeg', // Placeholder image
             route: '/games/wordassociation'
         },
     ];
