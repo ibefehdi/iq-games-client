@@ -16,22 +16,27 @@ const WordAssociationGame = () => {
     const inputRef = useRef(null);
     const startTime = useRef(Date.now());
     const [userId, setUserId] = useState();
-
     useEffect(() => {
-        getNewWord();
-        const timer = setInterval(() => {
-            setTimeLeft((prevTime) => {
-                if (prevTime <= 1) {
-                    clearInterval(timer);
-                    endGame();
-                    return 0;
-                }
-                return prevTime - 1;
-            });
-        }, 1000);
-
-        return () => clearInterval(timer);
+        const storedUserId = sessionStorage.getItem('userId');
+        setUserId(storedUserId);
     }, []);
+    useEffect(() => {
+        if (userId) { // Ensure userId is set
+            getNewWord();
+            const timer = setInterval(() => {
+                setTimeLeft((prevTime) => {
+                    if (prevTime <= 1) {
+                        clearInterval(timer);
+                        endGame();
+                        return 0;
+                    }
+                    return prevTime - 1;
+                });
+            }, 1000);
+
+            return () => clearInterval(timer);
+        }
+    }, [userId]); // Depend on userId
 
     const getNewWord = async () => {
         try {
@@ -99,7 +104,7 @@ const WordAssociationGame = () => {
                     userId: userId,
                 }),
             });
-
+            console.log(response)
             const data = await response.json();
             setIQ(data.iq);
             setGameOver(true);
@@ -118,8 +123,8 @@ const WordAssociationGame = () => {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
             className={`min-h-screen flex items-center justify-center ${darkMode
-                    ? 'bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white'
-                    : 'bg-gradient-to-r from-green-100 via-white to-green-100 text-gray-900'
+                ? 'bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white'
+                : 'bg-gradient-to-r from-green-100 via-white to-green-100 text-gray-900'
                 }`}
         >
             <div className="container mx-auto px-4 py-8">
